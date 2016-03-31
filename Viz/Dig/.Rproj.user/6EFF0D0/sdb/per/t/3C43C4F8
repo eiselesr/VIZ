@@ -1,0 +1,19 @@
+{
+    "collab_server" : "",
+    "contents" : "library(shiny)\n#options(shiny.trace=TRUE)\nrequire(pairsD3)\n\nbladedat <- read.csv(\"../../results/mergedPET.csv\")\n# Define server logic for slider examples\nshinyServer(function(input, output) {\n  palette(c(\"#E41A1C\", \"#377EB8\", \"#4DAF4A\", \"#984EA3\",\n  \"#FF7F00\", \"#FFFF33\", \"#A65628\", \"#F781BF\", \"#999999\"))\n  icount = 1\n  selPlotx  <-1\n  selPloty <- 2\n  numPlots <- 2\n  \n  bdNames = ls(bladedat,sort=FALSE)\n  \n  # Show the values using an HTML table\n  output$pairsPlot <- renderPlot({\n\n    idx = 0\n    \n    if (length(input$display) < 2) {\n      # Too few inputs, print message asking for more.\n      print(\"Too few inputs.\")\n      \n    } else {\n      \n      print(\"Rendering Plot.\")\n      for(choice in 1:length(input$display)) {\n        mm <- match(input$display[choice],bdNames)\n        if(mm > 0) { idx <- c(idx,length(bdNames)- mm + 1 ) }\n      }\n      print(idx)\n      \n      bd <<- bladedat\n      for(column in 1:length(bdNames)) {\n        inpname=paste(\"inp\",toString(column),sep=\"\")\n        nname = bdNames[column]\n        rng = input[[inpname]]\n        bd <<- bd[bd[nname] >= rng[1],]\n        bd <<- bd[bd[nname] <= rng[2],]\n        #cat(\"-----------\", inpname, nname, rng, length(bd[nname]), sep = '\\n')\n      }\n      \n      if(length(bd[idx]) > 0) {\n        cols <- character(nrow(bd))\n        cols[bd$source == 0] <- \"#1565c0\" # Metamorph Data\n        cols[bd$source == 1] <- \"#FDB813\" # Georgia Tech Data\n        pairs(bd[idx],lower.panel = panel.smooth,upper.panel=NULL, col=cols)\n      }\n    }\n\n  })\n  \n  # output$selected_rows <- renderPrint({\n  #     ptidx <<- input$plot_click$x \n  #     ptidy <<- input$plot_click$y\n  #     divScat <<- length(scatIdx)\n  #     xidx <- as.integer(1+(divScat-1)*ptidx)\n  #     yidx <- as.integer(1+(divScat-1)*ptidy)\n  #     selPlotx <<- as.integer(scatIdx[xidx+1])\n  #     selPloty <<- as.integer(scatIdx[yidx+1])\n  #     # input$plot_click$x\n  #     cat(\"Clicked x=\",ptidx , \"y=\",ptidy,\"numplots\",numPlots,\" Selected: \", selPlotx,selPloty,\"divscat\",divScat,\"scatIdx\",scatIdx ) \n  #     #cat(scatIdx)\n  #     icount <<- icount + 1 + input$plot_click$x\n  #  })\n  \n\n \n  output$exportData <- downloadHandler(\n    filename = function() { paste('data-', Sys.Date(), '.csv', sep='') },\n    content = function(file) { write.csv(bd, file) }\n  )\n\n})  \n",
+    "created" : 1448053335375.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3720630093",
+    "id" : "3C43C4F8",
+    "lastKnownWriteTime" : 1448320611,
+    "path" : "~/Desktop/dig/Dig/server.R",
+    "project_path" : "server.R",
+    "properties" : {
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
