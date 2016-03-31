@@ -10,6 +10,7 @@ Download the repository
   3. Choose yes when prompted to create a local library
 3. Add R to PATH variable
   - Default in windows: C:\Program Files\R\R-3.2.4revised\bin\x64
+  - in Viz/go.bat remove the path to R. (REM is a comment in .bat files)
 4. Copy archive.bat, doviz2.bat and the Viz folder into the OpenMETA project folder.
 
 Use Viz
