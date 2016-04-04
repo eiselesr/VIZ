@@ -25,16 +25,44 @@ shinyServer(function(input, output, clientData, session) {
   {
     # raw = read.csv("../data.csv", fill=T)
     raw = read.csv("../../results/mergedPET.csv", fill=T)
+    print(raw)
   }
-  
+
   # Pre-processing -----------------------------------------------------------
   varNames = names(raw)
   varClass = sapply(raw,class)
   varFactor <- varNames[varClass == "factor"]
-  
-  rawAbsMin = apply(raw, 2, min, na.rm=TRUE)
-  rawAbsMax = apply(raw, 2, max, na.rm=TRUE)
-  
+
+  GET_NUM_MAX <- function(rawX)
+  {
+    if(!is.na(as.numeric(rawX)))
+    {
+      max(as.numeric(rawX), na.rm=TRUE)
+    }
+    else
+    {
+      max(rawX, na.rm=TRUE)
+    }
+  }
+
+  GET_NUM_MIN <- function(rawX)
+  {
+    if(!is.na(as.numeric(rawX)))
+    {
+      min(as.numeric(rawX), na.rm=TRUE)
+    }
+    else
+    {
+      min(rawX, na.rm=TRUE)
+    }
+  }
+
+  #rawAbsMin = apply(raw, 2, min, na.rm=TRUE)
+  rawAbsMin = apply(raw, 2, GET_NUM_MIN)
+  print(paste("rawAbsMin is", rawAbsMin))
+  rawAbsMax = apply(raw, 2, GET_NUM_MAX)
+  print(paste("rawAbsMax is", rawAbsMax))
+
   varRange <- varNames[((as.numeric(rawAbsMax)-as.numeric(rawAbsMin))!= "0")]
   varRange <- varRange[!is.na(varRange)]
   varRangeNum <- varRange[varClass[varRange] == "numeric" | varClass[varRange] == "integer"]
@@ -45,22 +73,22 @@ shinyServer(function(input, output, clientData, session) {
   updateSelectInput(session, "display", choices = varRange, selected = varRange[c(1,2)])
   updateSelectInput(session, "xInput", choices = varRange, selected = varRange[c(1)])
   updateSelectInput(session, "yInput", choices = varRange, selected = varRange[c(2)])
-  
+
   resetPlotOptions <- observeEvent(input$resetOptions, {
     print("In resetPlotOptions()")
     updateSelectInput(session, "display", selected = varRange[c(1,2)])
     updateCheckboxInput(session, "color", value = FALSE)
     # updateSelectInput(session, "colType", selected = "Max/Min")
   })
-  
+
   # resetViewerOptions <- observeEvent(input$resetSettings, {
   #   print("In resetViewerSettings()")
   #   updateCheckboxInput(session, "autoRender", value = TRUE)
   #   updateRadioButtons(session, "pointStyle", choices = c("Normal" = 1,"Filled" = 19), selected = "Normal")
   #   updateRadioButtons(session, "pointSize", choices = c("Small" = 1,"Medium" = 1.5,"Large" = 2), selected = "Small")
   # })
-  
-  # Sliders ------------------------------------------------------------------
+
+  # Sliders ------------------------------------------------------------------T
   output$enums <- renderUI({
     fluidRow(
       lapply(1:length(varNames), function(column) {
@@ -77,25 +105,31 @@ shinyServer(function(input, output, clientData, session) {
       })
     )
   })
-  
+
   output$sliders <- renderUI({
     fluidRow(
       lapply(1:length(varNames), function(column) {
         print(paste(column, varNames[column], varClass[column]))
         if(varClass[column] == "numeric") {
           max <- as.numeric(unname(rawAbsMax[varNames[column]]))
+          print(paste("max is", max))
           min <- as.numeric(unname(rawAbsMin[varNames[column]]))
+          print(paste("min is", min))
           diff <- (max-min)
+          print(paste("diff is", diff))
           # print(paste(column, "min", min, "max", max, "diff", diff))
           if (diff != 0) {
             step <- max(diff*0.01, abs(min)*0.001, abs(max)*0.001)
+            print(paste("step is", step))
             # cat("step", diff*0.01, abs(min)*0.001, abs(max)*0.001, "\n", sep = " ")
             column(2,
               sliderInput(paste0('inp', column),
                           varNames[column],
                           step = signif(step, digits = 4),
                           min = signif(min-step*10, digits = 4),
+                          print(paste("min is", min)),
                           max = signif(max+step*10, digits = 4),
+                          print(paste("max is", max)),
                           value = c(signif(min-step*10, digits = 4), signif(max+step*10, digits = 4)))
             )
           }
@@ -117,7 +151,7 @@ shinyServer(function(input, output, clientData, session) {
       })
     )
   })
-  
+
   output$constants <- renderUI({
     fluidRow(
       lapply(1:length(varNames), function(column) {
@@ -141,7 +175,7 @@ shinyServer(function(input, output, clientData, session) {
       })
     )
   })
-  
+
   resetDefaultSliders <- observeEvent(input$resetSliders, {
     print("In resetDefaultSliders()")
     for(column in 1:length(varNames)) {
@@ -168,7 +202,7 @@ shinyServer(function(input, output, clientData, session) {
       }
     }
   })
-  
+
   # Data functions -----------------------------------------------------------
   filterData <- reactive({
     print("In filterData()")
@@ -192,7 +226,7 @@ shinyServer(function(input, output, clientData, session) {
           }
         }
       }
-      
+
       # cat("-----------", inpName, nname, rng, length(data[nname]), sep = '\n')
     }
     print("Data Filtered")
@@ -227,7 +261,7 @@ shinyServer(function(input, output, clientData, session) {
     print("Data Colored")
     data
   })
-  
+
   rangesData <- reactive({
     # for(column in 1:length(varNames)) {
     #   inpName=paste("inp",toString(column),sep="")
@@ -255,7 +289,7 @@ shinyServer(function(input, output, clientData, session) {
       data <- slowData()
     }
     validate(need(length(vars)>=2, "Please select two or more display variables."))
-    
+
     print("Rendering Plot.")
     # if(input$colType == 'Discrete') {
     #   print("Printing 'Discrete' plot.")
@@ -267,7 +301,7 @@ shinyServer(function(input, output, clientData, session) {
     # }
     print("Plot Rendered.")
   })
-  
+
   varsList <- reactive({
     print("Getting Variable List.")
     idx = 0
@@ -278,7 +312,7 @@ shinyServer(function(input, output, clientData, session) {
     print(idx)
     idx
   })
-  
+
   slowVarsList <- eventReactive(input$renderPlot, {
     print(paste("input$renderPlot:", input$renderPlot))
     print("Getting Variable List.")
@@ -290,11 +324,11 @@ shinyServer(function(input, output, clientData, session) {
     print(idx)
     idx
   })
-  
+
   slowData <- eventReactive(input$renderPlot, {
     colorData()
   })
-  
+
   output$stats <- renderText({
     infoTable()
   })
@@ -321,12 +355,12 @@ shinyServer(function(input, output, clientData, session) {
     filename = function() { paste('data-', Sys.Date(), '.csv', sep='') },
     content = function(file) { write.csv(filterData(), file) }
   )
-  
+
   output$exportRanges <- downloadHandler(
     filename = function() { paste('ranges-', Sys.Date(), '.csv', sep='') },
     content = function(file) { write.csv(rangesData(), file) }
   )
-  
+
   output$exportPlot <- downloadHandler(
     filename = function() { paste('plot-', Sys.Date(), '.pdf', sep='') },
     content = function(file) {
@@ -336,7 +370,7 @@ shinyServer(function(input, output, clientData, session) {
       file.copy(paste('plot-', Sys.Date(), '.pdf', sep=''), file)
     }
   )
-  
+
   # Single Plot Tab ----------------------------------------------------------
 
   output$singlePlot <- renderPlot({
@@ -353,7 +387,7 @@ shinyServer(function(input, output, clientData, session) {
     input$updateDataTable
     data <- isolate(filterData())
   })
-  
+
   # Ranges Table Tab --------------------------------------------------------------------------------
   output$ranges <- renderPrint({
     input$updateRanges
@@ -362,7 +396,7 @@ shinyServer(function(input, output, clientData, session) {
     # print(rangeText)
     t(rangeText)
   })
-  
+
   # UI Adjustments -----------------------------------------------------------
   updateColorSlider <- function() {
     data <- isolate(filterData())
@@ -372,7 +406,7 @@ shinyServer(function(input, output, clientData, session) {
     print(paste("In updateColorSlider(). colVarNum:", input$colVarNum, min, max))
     thirtythree <- quantile(data[[paste(input$colVarNum)]], 0.33, na.rm=TRUE)
     sixtysix <- quantile(data[[paste(input$colVarNum)]], 0.66, na.rm=TRUE)
-    
+
     absMin <- as.numeric(unname(rawAbsMin[paste(input$colVarNum)]))
     absMax <- as.numeric(unname(rawAbsMax[paste(input$colVarNum)]))
     absStep <- max((max-min)*0.01, abs(min)*0.001, abs(max)*0.001)
@@ -405,16 +439,16 @@ shinyServer(function(input, output, clientData, session) {
   updateXSlider <- observeEvent(input$updateX, {
     updateSlider(input$xInput, input$plot_brush$xmin, input$plot_brush$xmax)
   })
-  
+
   updateYSlider <- observeEvent(input$updateY, {
     updateSlider(input$yInput, input$plot_brush$ymin, input$plot_brush$ymax)
   })
-  
+
   updateBothSlider <- observeEvent(input$updateBoth, {
     updateSlider(input$xInput, input$plot_brush$xmin, input$plot_brush$xmax)
     updateSlider(input$yInput, input$plot_brush$ymin, input$plot_brush$ymax)
   })
-  
+
   updateSlider <- function(varName, min, max) {
     if(!is.null(min) & !is.null(max)) {
       if(varName %in% varRangeNum) {
@@ -438,7 +472,7 @@ shinyServer(function(input, output, clientData, session) {
     #print(paste("new upper value", input$xInput, "=", input$plot_brush$xmax))
     #updateSliderInput()
   })
-  
+
   observe({
     print("Observing.")
     if (!is.null(isolate(colorData())) & !(as.character(input[["colVarNum"]]) == "")) {
